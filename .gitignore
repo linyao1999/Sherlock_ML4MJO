@@ -1,0 +1,12 @@
+# Ignore everything by default
+*
+
+# But do NOT ignore directories (so git can search them)
+!*/
+
+# Do NOT ignore these specific file types
+!*.py
+!*.yaml
+!*.ipynb
+!.gitignore
+
