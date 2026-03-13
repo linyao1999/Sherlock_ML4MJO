@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
-from cnn import CNN_one
-from mlp import MLP
+from .cnn import CNN_one
+from .mlp import MLP
 
 class UNet_A(nn.Module):
     def __init__(self, cnn_config, mlp_config):

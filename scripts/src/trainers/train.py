@@ -143,7 +143,8 @@ def train_model(model, train_loader, val_loader, config):
 
 def train_model_hpo(model, train_loader, val_loader, config, trial):
     """
-    Optuna-compatible training loop with pruning and scheduler support.
+    Optuna-compatible training loop with pruning, scheduler support, 
+    and detailed loss reporting.
     """
     device = get_device()
     model.to(device)
@@ -153,7 +154,7 @@ def train_model_hpo(model, train_loader, val_loader, config, trial):
         "epochs": 20,
         "optimizer": "AdamW",
         "criterion": "MSELoss",
-        "early_stopping_patience": 7, # Tighter patience for HPO
+        "early_stopping_patience": 7, 
         **config.get("training", {})
     }
     
@@ -165,8 +166,9 @@ def train_model_hpo(model, train_loader, val_loader, config, trial):
     no_improve_epochs = 0
 
     for epoch in range(training_config["epochs"]):
-        # Training
+        # --- Training Phase ---
         model.train()
+        train_running_loss = 0.0
         for inputs, targets in train_loader:
             inputs, targets = inputs.to(device), targets.to(device)
             optimizer.zero_grad()
@@ -174,8 +176,13 @@ def train_model_hpo(model, train_loader, val_loader, config, trial):
             loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
+            
+            # Accumulate training loss
+            train_running_loss += loss.item() * inputs.size(0)
 
-        # Validation
+        avg_train_loss = train_running_loss / len(train_loader.dataset)
+
+        # --- Validation Phase ---
         model.eval()
         val_running_loss = 0.0
         with torch.no_grad():
@@ -186,18 +193,23 @@ def train_model_hpo(model, train_loader, val_loader, config, trial):
         avg_val_loss = val_running_loss / len(val_loader.dataset)
         val_loss_history.append(avg_val_loss)
 
+        # Detailed Printing for HPO Monitoring
+        print(f"[Trial {trial.number} | Epoch {epoch+1}/{training_config['epochs']}] "
+              f"Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
+
         # Optuna Reporting & Pruning
         trial.report(avg_val_loss, step=epoch)
         if trial.should_prune() or math.isnan(avg_val_loss):
+            print(f"Trial {trial.number} pruned at epoch {epoch+1}")
             raise optuna.TrialPruned()
 
-        # Fixed: Scheduler must step in HPO loop too
+        # Scheduler Step
         if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
             scheduler.step(avg_val_loss)
         else:
             scheduler.step()
 
-        # Early stopping for the trial to save compute
+        # Early stopping for the trial
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             no_improve_epochs = 0
@@ -205,6 +217,7 @@ def train_model_hpo(model, train_loader, val_loader, config, trial):
             no_improve_epochs += 1
         
         if no_improve_epochs >= training_config["early_stopping_patience"]:
+            print(f"Trial {trial.number} early stopping at epoch {epoch+1}")
             break
 
     return best_val_loss, val_loss_history

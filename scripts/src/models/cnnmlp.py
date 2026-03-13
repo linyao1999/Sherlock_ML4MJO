@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
-from cnn import CNN
-from mlp import MLP
+from .cnn import CNN
+from .mlp import MLP
 
 class CNNMLP(nn.Module):
     def __init__(self, cnn_config, mlp_config):
