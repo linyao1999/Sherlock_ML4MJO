@@ -1,0 +1,63 @@
+data:
+  dataflg: era5
+  grid_res: 2
+  input_path:
+  - /scratch/users/linyao/ML4MJO/data/rescaled_m10all_wnx9all/u200.fltano120.1978to2025based1979to2001.nc
+  input_vars:
+  - u200
+  lat_range: 20
+  lead: 35
+  target_path: /scratch/users/linyao/ML4MJO/data/targets/ROMI_ERA5_daily_1979to2012.nc
+  target_vars:
+  - ROMI
+  test_end: '2021-12-31'
+  test_start: '2010-01-01'
+  train_end: '2009-12-31'
+  train_start: '1980-01-01'
+  transform: null
+  val_end: '2015-12-31'
+  val_start: '2010-01-01'
+dataset_type: map
+exp_num: 8
+hidden_layers_str: '256_128_16'
+kernel_size_str: '5_5'
+model:
+  cnn:
+    channels_list:
+    - 32
+    - 32
+    channels_list_str: '64'
+    dropout: 0.0
+    input_channel_num: 1
+    input_map_size: 3780
+    kernel_size:
+    - 5
+    - 5
+    nlat: 21
+    nlon: 180
+    norm_type: batch
+    num_filters_enc: 64
+    num_groups: 0
+    padding: same
+    stride: 1
+  mlp:
+    dropout: 0.4
+    hidden_layers:
+    - 256
+    - 128
+    - 16
+    output_size: 72
+    use_layer_norm: true
+  name: UNet_A
+model_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/models/era5_u200_UNet_A_ROMI_rescaled_m10all_wnx9all/UNet_A/ROMI/lead35/t1/exp8/model_lr0.04477225971601327_bs16_do0.4_cnn64_k5_5_mlp256_128_16_SGD.pt
+prediction_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/predictions/era5_u200_UNet_A_ROMI_rescaled_m10all_wnx9all/UNet_A/ROMI/lead35/t1/exp8/preds_lr0.04477225971601327_bs16_do0.4_cnn64_k5_5_mlp256_128_16_SGD.nc
+training:
+  batch_size: 16
+  criterion: MSELoss
+  early_stopping_patience: 7
+  epochs: 20
+  learning_rate: 0.04477225971601327
+  momentum: 0.8
+  multi_lead: true
+  optimizer: SGD
+  weight_decay: 4.390679694414461e-05

@@ -205,8 +205,8 @@ model_save_path = config["model_save_path"]
 
 if os.path.exists(prediction_save_path):
     print(f"{prediction_save_path} exists. exit.")
-    # sys.exit(0)
-    os.remove(prediction_save_path)
+    sys.exit(0)
+    # os.remove(prediction_save_path)
 
 # =====================================================================
 # 6. Execution: Load Data, Build Model, Train

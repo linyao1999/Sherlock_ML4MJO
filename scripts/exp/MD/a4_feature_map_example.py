@@ -35,6 +35,8 @@ trial_tag = f"t{trial_rank}"
 save_dir = Path(f"/scratch/users/linyao/ML4MJO/scripts/outputs/feature_maps/{exp_name}")
 save_dir.mkdir(parents=True, exist_ok=True)
 
+save_path = save_dir / f"spectra_{exp_name}_{trial_tag}_exp{exp_num}.png"
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
@@ -146,6 +148,13 @@ with torch.no_grad():
         batch_size = inputs.shape[0]
         for b_idx in range(batch_size):
             if global_sample_idx in target_time_indices:
+
+                # --- NEW: Save the Original Input without ReLU ---
+                if "Original Input" not in relu_time_steps:
+                    relu_time_steps["Original Input"] = []
+                relu_time_steps["Original Input"].append(np.mean(inp_np[b_idx], axis=0))
+                # -----------------------------------------------
+
                 for layer_name, fm_np in activations.items():
                     relu_fm = np.maximum(0, fm_np[b_idx])
                     channel_avg_map = np.mean(relu_fm, axis=0)
@@ -192,7 +201,7 @@ for idx, key in enumerate(layer_keys):
     color = layer_colors[idx % len(layer_colors)]
     ax.plot(wavenumbers, spectrum[1:21], color=color, linewidth=2, alpha=1.0, label=clean_label)
 
-ax.set_xlim(0, 20)
+ax.set_xlim(0, 21)
 ax.set_xticks(np.arange(0, 21, 5))
 ax.set_xlabel("Zonal Wavenumber")
 ax.set_ylabel("Normalized Power")
@@ -201,22 +210,25 @@ ax.grid(True, linestyle=':', alpha=0.6)
 # ax.legend(loc='upper right', fontsize=10, bbox_to_anchor=(1.35, 1.0))
 plt.tight_layout()
 
-save_path = save_dir / f"spectra_{exp_name}_{trial_tag}_exp{exp_num}.png"
 fig.savefig(save_path, dpi=300, bbox_inches='tight')
 # np.savez(save_dir / f"computed_spectra_{exp_name}_{trial_tag}_exp{exp_num}.npz", **final_spectra)
 plt.close(fig)
-
 # ======================================================================
-# 6. Plotting Selected ReLU Maps per Time Step (6, 1 Layout)
+# 6. Plotting Selected ReLU Maps per Time Step (+ Input Layout)
 # ======================================================================
 print(f"Plotting individual ReLU feature maps for {len(actual_saved_dates)} time steps...")
 
-all_relu_layers = list(relu_time_steps.keys())
+# Filter out the input so we can safely sample just the network layers
+all_relu_layers = [k for k in relu_time_steps.keys() if k != "Original Input"]
+
 if len(all_relu_layers) > 6:
     selected_indices = np.linspace(0, len(all_relu_layers) - 1, 6).astype(int)
     selected_relu_layers = [all_relu_layers[i] for i in selected_indices]
 else:
     selected_relu_layers = all_relu_layers
+
+# Prepend the Original Input so it plots at the top
+layers_to_plot = ["Original Input"] + selected_relu_layers
 
 step_save_dir = save_dir / f"relu_steps_{exp_name}_{trial_tag}_exp{exp_num}"
 step_save_dir.mkdir(parents=True, exist_ok=True)
@@ -234,31 +246,37 @@ def set_geo_ticks(ax):
     ax.set_yticks(np.arange(-20, 22, 20))
     ax.set_yticklabels(['20S', '0', '20N'])
     
+layer_leg = [f'{input_var_name}', 'L1','L2','L3','L4','L5','L6']
 for sample_idx in range(len(actual_saved_dates)):
     current_date = actual_saved_dates[sample_idx]
     
-    fig_relu, axes_relu = plt.subplots(len(selected_relu_layers), 1, figsize=(10, 2.5 * (len(selected_relu_layers))))
-    if len(selected_relu_layers) == 1: axes_relu = [axes_relu] 
+    # Height scales automatically with the number of panels
+    fig_relu, axes_relu = plt.subplots(len(layers_to_plot), 1, figsize=(10, 2.5 * len(layers_to_plot)))
+    if len(layers_to_plot) == 1: axes_relu = [axes_relu] 
 
-    for i, layer_name in enumerate(selected_relu_layers):
+    for i, layer_name in enumerate(layers_to_plot):
         sel_spatial_map = relu_time_steps[layer_name][sample_idx]
         
         vmax = np.max(np.abs(sel_spatial_map))
         vmax = vmax if vmax > 0 else 1.0
         
-        # Note: Since ReLU maps are exclusively >= 0, RdBu_r will mostly show the white-to-red spectrum
-        im = axes_relu[i].contourf(lon, lat, sel_spatial_map / vmax, cmap='RdBu_r', levels=np.linspace(0, 1, 11))
-        # axes_relu[i].set_title(f"ReLU: {layer_name} | Date: {current_date}", fontsize=14)
+        # Use full -1 to 1 spectrum for raw input; 0 to 1 for ReLU activations
+        if layer_name == "Original Input":
+            levels = np.linspace(-1, 1, 11)
+            im = axes_relu[i].contourf(lon, lat, sel_spatial_map / vmax, cmap='RdBu_r', levels=levels)
+        else:
+            levels = np.linspace(0, 1, 11)
+            im = axes_relu[i].contourf(lon, lat, sel_spatial_map / vmax, cmap='Blues', levels=levels)
+            
         set_geo_ticks(axes_relu[i])
-        # axes_relu[i].axis('off')
-        axes_relu[i].text(5, lat[len(lat)//4], f'{layer_name}', color='black', fontsize=16)
+        axes_relu[i].text(5, lat[len(lat)//5], f'{layer_leg[i]}', color='black')
 
     plt.tight_layout()
     relu_save_path = step_save_dir / f"relu_maps_{current_date}.png"
     fig_relu.savefig(relu_save_path, dpi=300, bbox_inches='tight')
     plt.close(fig_relu)
     
-print(f"Saved {len(actual_saved_dates)} daily ReLU maps to: {step_save_dir}")
+print(f"Saved {len(actual_saved_dates)} daily maps to: {step_save_dir}")
 
 # ======================================================================
 # 7. Plotting Example Feature Maps (Norm Layers)
@@ -291,7 +309,7 @@ for layer_name, feature_map in example_feature_maps.items():
             
             axes_ex[i].contourf(lon, lat, fm[i] / vmax, cmap='RdBu_r', levels=np.linspace(-1, 1, 11))
             # axes_ex[i].set_title(f"Channel {i}", fontsize=10)
-            axes_ex[i].text(5, lat[len(lat)//4], f"Channel {i}", color='black', fontsize=8)
+            axes_ex[i].text(5, lat[len(lat)//5], f"Channel {i}", color='black', fontsize=8)
             axes_ex[i].axis('off')
         else:
             axes_ex[i].axis('off')

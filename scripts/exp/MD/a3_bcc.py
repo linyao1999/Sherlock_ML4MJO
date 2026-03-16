@@ -32,8 +32,8 @@ PERIODS = {
     "test": {"start": "2016-01-01", "end": "2021-12-31"}
 }
 
-N_ENSEMBLES = 8
-TOP_TRIALS = [1, 2, 3]
+N_ENSEMBLES = 16
+TOP_TRIALS = [1,]
 
 # Base template for prediction files
 BASE_PRED_PATH = "/scratch/users/linyao/ML4MJO/scripts/outputs/predictions/{dataset_type}/{model_name}/{target_name}/lead{lead}/{exp_num}/preds_lr{lr}_bs{batch_size}_do{dropout}_cnn{channels_list_str}_k{kernel_size}_mlp{hidden_layers_str}_{optimizer}.nc"
@@ -88,7 +88,8 @@ for trial_rank in TOP_TRIALS:
         if os.path.exists(fn):
             fn_list.append(fn)
         else:
-            print(f"  [Warning] Missing prediction file: {fn}")
+            print(f"  [Error] Missing prediction file: {fn}")
+            sys.exit(1)
 
     if not fn_list:
         print(f"[{trial_tag}] No prediction files found. Skipping.")
