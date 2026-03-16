@@ -182,7 +182,7 @@ if __name__ == "__main__":
     )
 
     n_total = 100
-    n_completed = len([t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE])
+    n_completed = len(study.trials)
     
     if n_completed < n_total:
         study.optimize(objective, n_trials=n_total - n_completed)
