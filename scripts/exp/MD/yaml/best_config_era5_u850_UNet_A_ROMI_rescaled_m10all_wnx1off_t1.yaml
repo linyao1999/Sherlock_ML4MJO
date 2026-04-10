@@ -18,7 +18,7 @@ data:
   val_end: '2015-12-31'
   val_start: '2010-01-01'
 dataset_type: map
-exp_num: 8
+exp_num: 16
 hidden_layers_str: '384_256_16'
 kernel_size_str: '9_9'
 model:
@@ -49,8 +49,8 @@ model:
     output_size: 72
     use_layer_norm: true
   name: UNet_A
-model_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/models/era5_u850_UNet_A_ROMI_rescaled_m10all_wnx1off/UNet_A/ROMI/lead35/t1/exp8/model_lr0.06676988390987164_bs32_do0.30000000000000004_cnn64_k9_9_mlp384_256_16_SGD.pt
-prediction_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/predictions/era5_u850_UNet_A_ROMI_rescaled_m10all_wnx1off/UNet_A/ROMI/lead35/t1/exp8/preds_lr0.06676988390987164_bs32_do0.30000000000000004_cnn64_k9_9_mlp384_256_16_SGD.nc
+model_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/models/era5_u850_UNet_A_ROMI_rescaled_m10all_wnx1off/UNet_A/ROMI/lead35/t1/exp16/model_lr0.06676988390987164_bs32_do0.30000000000000004_cnn64_k9_9_mlp384_256_16_SGD.pt
+prediction_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/predictions/era5_u850_UNet_A_ROMI_rescaled_m10all_wnx1off/UNet_A/ROMI/lead35/t1/exp16/preds_lr0.06676988390987164_bs32_do0.30000000000000004_cnn64_k9_9_mlp384_256_16_SGD.nc
 training:
   batch_size: 32
   criterion: MSELoss

@@ -1,0 +1,63 @@
+data:
+  dataflg: noaa
+  grid_res: 2
+  input_path:
+  - /scratch/users/linyao/ML4MJO/data/unscaled_m10resi_wnx9resi/prep.fltano120.1978to2025based1979to2001.nc
+  input_vars:
+  - prep
+  lat_range: 20
+  lead: 35
+  target_path: /scratch/users/linyao/ML4MJO/data/targets/noaa/ROMI_NOAA_1979to2022.nc
+  target_vars:
+  - ROMI
+  test_end: '2021-12-31'
+  test_start: '2010-01-01'
+  train_end: '2009-12-31'
+  train_start: '1980-01-01'
+  transform: null
+  val_end: '2015-12-31'
+  val_start: '2010-01-01'
+dataset_type: map
+exp_num: 8
+hidden_layers_str: '256_256_16'
+kernel_size_str: '5_5'
+model:
+  cnn:
+    channels_list:
+    - 32
+    - 32
+    channels_list_str: '32'
+    dropout: 0.0
+    input_channel_num: 1
+    input_map_size: 3780
+    kernel_size:
+    - 5
+    - 5
+    nlat: 21
+    nlon: 180
+    norm_type: batch
+    num_filters_enc: 32
+    num_groups: 0
+    padding: same
+    stride: 1
+  mlp:
+    dropout: 0.2
+    hidden_layers:
+    - 256
+    - 256
+    - 16
+    output_size: 72
+    use_layer_norm: true
+  name: UNet_A
+model_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/models/noaa_prep_UNet_A_ROMI_unscaled_m10resi_wnx9resi/UNet_A/ROMI/lead35/t1/exp8/model_lr0.010086679449175058_bs48_do0.2_cnn32_k5_5_mlp256_256_16_SGD.pt
+prediction_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/predictions/noaa_prep_UNet_A_ROMI_unscaled_m10resi_wnx9resi/UNet_A/ROMI/lead35/t1/exp8/preds_lr0.010086679449175058_bs48_do0.2_cnn32_k5_5_mlp256_256_16_SGD.nc
+training:
+  batch_size: 48
+  criterion: MSELoss
+  early_stopping_patience: 7
+  epochs: 20
+  learning_rate: 0.010086679449175058
+  momentum: 0.95
+  multi_lead: true
+  optimizer: SGD
+  weight_decay: 0.0002089099461241407

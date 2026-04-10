@@ -1,0 +1,81 @@
+# ======================================================================
+# BESTbase.yaml - 2026 MJO HPO Baseline Configuration
+# ======================================================================
+
+dataset_type: "map"
+
+data:
+  dataflg: 'era5'           # Overwritten by env var in HPO
+  input_vars: ['olr','prep','tcwv','sst','q200','q500','q850','T200','T500','T850','u200','u500','u850','v200','v500','v850','Z200','Z500','Z850']
+  target_vars: ['ROMI']
+  # Paths are dynamically constructed in a1_hpo.py; these are defaults
+  input_path: 
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/olr.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/prep.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/tcwv.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/sst.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/q200.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/q500.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/q850.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/T200.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/T500.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/T850.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/u200.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/u500.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/u850.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/v200.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/v500.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/v850.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/Z200.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/Z500.fltano120.1978to2025based1979to2001.nc"
+    - "/scratch/users/linyao/ML4MJO/data/fltano120/Z850.fltano120.1978to2025based1979to2001.nc"
+  target_path: "/scratch/users/linyao/ML4MJO/data/targets/ROMI_ERA5_daily_1979to2012.nc"
+  
+  # Temporal Split
+  train_start: '1980-01-01'
+  train_end: '2009-12-31'
+  val_start: '2010-01-01'
+  val_end: '2015-12-31'
+  test_start: '2010-01-01'
+  test_end: '2021-12-31'
+  
+  # Grid Configuration
+  lead: 35
+  lat_range: 20
+  grid_res: 2
+  transform: null
+
+model:
+  name: "UNet_A" # "CNN_MLP" or "UNet_A"
+  
+  cnn:
+    input_channel_num: 1
+    # For CNN_MLP: channels_list is suggested by HPO (e.g., [32, 32])
+    channels_list: [32, 32] 
+    # For UNet_A: num_filters_enc is used
+    num_filters_enc: 16     
+    kernel_size: [5, 5]
+    stride: 1
+    padding: "same"
+    dropout: 0.0            # Fixed to 0.0 for CNN per rules
+    norm_type: "batch"      # "batch" or "group" (HPO suggested)
+    num_groups: 8           # Only used if norm_type is "group"
+    input_map_size: 181     # (nlat * nlon) - calculated in HPO script
+
+  mlp:
+    # nhidden1, nhidden2, nhidden3 suggested by HPO
+    hidden_layers: [256, 128, 64]
+    output_size: 72         # (lead + 1) * n_modes for multi-lead
+    dropout: 0.3
+    use_layer_norm: true    # Recommended for stable MJO index regression
+
+training:
+  multi_lead: true          # Set False for single lead t+lead prediction
+  batch_size: 32
+  epochs: 30
+  optimizer: "AdamW"        # Optuna switches between AdamW and SGD
+  criterion: "MSELoss"
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  momentum: 0.9             # Used for SGD
+  early_stopping_patience: 10

@@ -1,0 +1,63 @@
+data:
+  dataflg: noaa
+  grid_res: 2
+  input_path:
+  - /scratch/users/linyao/ML4MJO/data/fltano120/T200.fltano120.1978to2025based1979to2001.nc
+  input_vars:
+  - T200
+  lat_range: 20
+  lead: 25
+  target_path: /scratch/users/linyao/ML4MJO/data/targets/noaa/ROMI_NOAA_1979to2022.nc
+  target_vars:
+  - ROMI
+  test_end: '2021-12-31'
+  test_start: '2010-01-01'
+  train_end: '2009-12-31'
+  train_start: '1980-01-01'
+  transform: null
+  val_end: '2015-12-31'
+  val_start: '2010-01-01'
+dataset_type: map
+exp_num: 4
+hidden_layers_str: '128_128_64'
+kernel_size_str: '3_3'
+model:
+  cnn:
+    channels_list:
+    - 32
+    - 32
+    channels_list_str: '16'
+    dropout: 0.0
+    input_channel_num: 1
+    input_map_size: 3780
+    kernel_size:
+    - 3
+    - 3
+    nlat: 21
+    nlon: 180
+    norm_type: batch
+    num_filters_enc: 16
+    num_groups: 0
+    padding: same
+    stride: 1
+  mlp:
+    dropout: 0.4
+    hidden_layers:
+    - 128
+    - 128
+    - 64
+    output_size: 2
+    use_layer_norm: true
+  name: UNet_A
+model_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/models/noaa_T200_UNet_A_ROMI_fltano120_lead25/UNet_A/ROMI/lead25/t1/exp4/model_lr0.006577507919735725_bs64_do0.4_cnn16_k3_3_mlp128_128_64_AdamW.pt
+prediction_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/predictions/noaa_T200_UNet_A_ROMI_fltano120_lead25/UNet_A/ROMI/lead25/t1/exp4/preds_lr0.006577507919735725_bs64_do0.4_cnn16_k3_3_mlp128_128_64_AdamW.nc
+training:
+  batch_size: 64
+  criterion: MSELoss
+  early_stopping_patience: 7
+  epochs: 20
+  learning_rate: 0.006577507919735725
+  momentum: 0.9
+  multi_lead: false
+  optimizer: AdamW
+  weight_decay: 3.24079754304953e-05

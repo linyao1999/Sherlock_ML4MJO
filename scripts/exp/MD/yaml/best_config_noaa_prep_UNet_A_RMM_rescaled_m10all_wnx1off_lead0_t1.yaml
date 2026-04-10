@@ -1,0 +1,63 @@
+data:
+  dataflg: noaa
+  grid_res: 2
+  input_path:
+  - /scratch/users/linyao/ML4MJO/data/rescaled_m10all_wnx1off/prep.fltano120.1978to2025based1979to2001.nc
+  input_vars:
+  - prep
+  lat_range: 20
+  lead: 0
+  target_path: /scratch/users/linyao/ML4MJO/data/targets/noaa/RMM_ERA5_daily_1980to2001.noaa.nc
+  target_vars:
+  - RMM
+  test_end: '2021-12-31'
+  test_start: '2010-01-01'
+  train_end: '2009-12-31'
+  train_start: '1980-01-01'
+  transform: null
+  val_end: '2015-12-31'
+  val_start: '2010-01-01'
+dataset_type: map
+exp_num: 16
+hidden_layers_str: '384_256_80'
+kernel_size_str: '3_3'
+model:
+  cnn:
+    channels_list:
+    - 32
+    - 32
+    channels_list_str: '32'
+    dropout: 0.0
+    input_channel_num: 1
+    input_map_size: 3780
+    kernel_size:
+    - 3
+    - 3
+    nlat: 21
+    nlon: 180
+    norm_type: batch
+    num_filters_enc: 32
+    num_groups: 0
+    padding: same
+    stride: 1
+  mlp:
+    dropout: 0.1
+    hidden_layers:
+    - 384
+    - 256
+    - 80
+    output_size: 2
+    use_layer_norm: true
+  name: UNet_A
+model_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/models/noaa_prep_UNet_A_RMM_rescaled_m10all_wnx1off_lead0/UNet_A/RMM/lead0/t1/exp16/model_lr0.0001654103824172728_bs48_do0.1_cnn32_k3_3_mlp384_256_80_AdamW.pt
+prediction_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/predictions/noaa_prep_UNet_A_RMM_rescaled_m10all_wnx1off_lead0/UNet_A/RMM/lead0/t1/exp16/preds_lr0.0001654103824172728_bs48_do0.1_cnn32_k3_3_mlp384_256_80_AdamW.nc
+training:
+  batch_size: 48
+  criterion: MSELoss
+  early_stopping_patience: 7
+  epochs: 20
+  learning_rate: 0.0001654103824172728
+  momentum: 0.9
+  multi_lead: false
+  optimizer: AdamW
+  weight_decay: 0.005368340947146528

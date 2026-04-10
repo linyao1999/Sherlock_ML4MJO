@@ -10,9 +10,20 @@ def get_input(vn, dataflg, lat_range=[20, -20], c=51, m=10, mflg='all', wnx=9, w
     Optimized MJO data filtering using Meridional Hermite Projection and Zonal FFT.
     Memory-safe via time-chunked processing.
     """
-    base_path = Path('/scratch/users/linyao/ML4MJO/data')
-    prefix = "rescaled" if rescaleflg else "unscaled"
-    out_dir = base_path / f'{prefix}_m{m}{mflg}_wnx{wnx}{wnxflg}'
+    base_path = Path('/scratch/users/linyao/ML4MJO/data')  
+
+    if (mflg == 'off' and wnxflg == 'off'):
+        out_dir = base_path / f'fltano120' # NOTE: NEED TO BE CHANGED IF FOR OTHER PURPOSE
+    else:
+        prefix = "rescaled" if rescaleflg else "unscaled"
+        out_dir = base_path / f'{prefix}_m{m}{mflg}_wnx{wnx}{wnxflg}'
+
+    if lat_range[0] != 20:
+        out_dir = out_dir.parent / (out_dir.name + f'_lat{lat_range[0]}')
+
+    if c != 51:
+        out_dir = out_dir.parent / (out_dir.name + f'_c{c}')
+
     out_dir.mkdir(parents=True, exist_ok=True)
     
     # Define filenames
@@ -133,17 +144,29 @@ if __name__ == "__main__":
     c = 51
     lat_r = 20
 
-    for vn in ['olr']:
-        for rescaleflg in [True, False]:
-            get_input(vn, 'noaa', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='all', wnx=1, wnxflg='off', rescaleflg=rescaleflg)
-            get_input(vn, 'noaa', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='all', wnx=wnxcut, wnxflg='all', rescaleflg=rescaleflg)
-            get_input(vn, 'noaa', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='resi', wnx=wnxcut, wnxflg='resi', rescaleflg=rescaleflg)
-
-    for vn in ['olr', 'tcwv', 'u200', 'u850']:
-        for rescaleflg in [True, False]:
+    # for vn in ['q500']:
+    #     for rescaleflg in [False, ]:
+    #         get_input(vn, 'noaa', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='all', wnx=1, wnxflg='off', rescaleflg=rescaleflg)
+    #         get_input(vn, 'noaa', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='all', wnx=wnxcut, wnxflg='all', rescaleflg=rescaleflg)
+    #         get_input(vn, 'noaa', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='resi', wnx=wnxcut, wnxflg='resi', rescaleflg=rescaleflg)
+            # get_input(vn, 'noaa', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='all', wnx=wnxcut, wnxflg='resi', rescaleflg=rescaleflg)  # SL
+            # get_input(vn, 'noaa', lat_range=[lat_r, -lat_r], c=c, m=1, mflg='off', wnx=wnxcut, wnxflg='resi', rescaleflg=rescaleflg)  # SA
+    for vn in ['q500']:
+        for rescaleflg in [False, ]:
             get_input(vn, 'era5', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='all', wnx=1, wnxflg='off', rescaleflg=rescaleflg)
             get_input(vn, 'era5', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='all', wnx=wnxcut, wnxflg='all', rescaleflg=rescaleflg)
             get_input(vn, 'era5', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='resi', wnx=wnxcut, wnxflg='resi', rescaleflg=rescaleflg)
+            # get_input(vn, 'era5', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='all', wnx=wnxcut, wnxflg='resi', rescaleflg=rescaleflg)
+            # get_input(vn, 'era5', lat_range=[lat_r, -lat_r], c=c, m=1, mflg='off', wnx=1, wnxflg='off', rescaleflg=rescaleflg)
+
+    # for mcut in [3, 5, 10]:
+    #     for wnxcut in [2, 4, 9, 14]:
+    #         for vn in ['q500']:
+    #             for rescaleflg in [False,]:
+    #                 # get_input(vn, 'era5', lat_range=[lat_r, -lat_r], c=c, m=1, mflg='off', wnx=1, wnxflg='off', rescaleflg=rescaleflg)
+    #                 # get_input(vn, 'era5', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='all', wnx=1, wnxflg='off', rescaleflg=rescaleflg)
+    #                 get_input(vn, 'noaa', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='all', wnx=wnxcut, wnxflg='all', rescaleflg=rescaleflg)
+    #                 get_input(vn, 'noaa', lat_range=[lat_r, -lat_r], c=c, m=mcut, mflg='resi', wnx=wnxcut, wnxflg='resi', rescaleflg=rescaleflg)
 
 
 

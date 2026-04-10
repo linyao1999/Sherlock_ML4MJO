@@ -1,0 +1,99 @@
+data:
+  dataflg: noaa
+  grid_res: 2
+  input_path:
+  - /scratch/users/linyao/ML4MJO/data/fltano120/olr.fltano120.noaa.2x2.1979to2022based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/prep.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/tcwv.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/sst.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/q200.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/q500.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/q850.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/T200.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/T500.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/T850.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/u200.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/u500.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/u850.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/v200.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/v500.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/v850.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/Z200.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/Z500.fltano120.1978to2025based1979to2001.nc
+  - /scratch/users/linyao/ML4MJO/data/fltano120/Z850.fltano120.1978to2025based1979to2001.nc
+  input_vars:
+  - olr
+  - prep
+  - tcwv
+  - sst
+  - q200
+  - q500
+  - q850
+  - T200
+  - T500
+  - T850
+  - u200
+  - u500
+  - u850
+  - v200
+  - v500
+  - v850
+  - Z200
+  - Z500
+  - Z850
+  lat_range: 20
+  lead: 25
+  target_path: /scratch/users/linyao/ML4MJO/data/targets/noaa/RMM_ERA5_daily_1980to2001.noaa.nc
+  target_vars:
+  - RMM
+  test_end: '2021-12-31'
+  test_start: '2010-01-01'
+  train_end: '2009-12-31'
+  train_start: '1980-01-01'
+  transform: null
+  val_end: '2015-12-31'
+  val_start: '2010-01-01'
+dataset_type: map
+exp_num: 16
+hidden_layers_str: '512_192_32'
+kernel_size_str: '3_3'
+model:
+  cnn:
+    channels_list:
+    - 32
+    - 32
+    channels_list_str: '32'
+    dropout: 0.0
+    input_channel_num: 19
+    input_map_size: 3780
+    kernel_size:
+    - 3
+    - 3
+    nlat: 21
+    nlon: 180
+    norm_type: group
+    num_filters_enc: 32
+    num_groups: 8
+    padding: same
+    stride: 1
+  mlp:
+    dropout: 0.4
+    hidden_layers:
+    - 512
+    - 192
+    - 32
+    output_size: 2
+    use_layer_norm: true
+  name: UNet_A
+model_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/models/noaa_BEST_UNet_A_RMM_lead25/UNet_A/RMM/lead25/t1/exp16/model_lr0.0002221208914202302_bs64_do0.4_cnn32_k3_3_mlp512_192_32_AdamW.pt
+prediction_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/predictions/noaa_BEST_UNet_A_RMM_lead25/UNet_A/RMM/lead25/t1/exp16/preds_lr0.0002221208914202302_bs64_do0.4_cnn32_k3_3_mlp512_192_32_AdamW.nc
+training:
+  batch_size: 64
+  criterion: MSELoss
+  early_stopping_patience: 7
+  epochs: 20
+  learning_rate: 0.0002221208914202302
+  momentum: 0.9
+  multi_lead: false
+  optimizer: AdamW
+  weight_decay: 1.749379318197311e-06

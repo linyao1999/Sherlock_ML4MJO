@@ -19,12 +19,21 @@ import metrics as mjo
 
 # Read environment variables
 dataflg = os.environ.get("dataflg", "era5").lower()
-input_dir = os.environ.get("expflg", "rescaled_m10resi_wnx9resi")
+input_dir = os.environ.get("expflg", "unscaled_m10all_wnx9resi")
+# input_dir = os.environ.get("expflg", "fltano120")
 input_var_name = os.environ.get("input_var", "olr")
 output_var_name = os.environ.get("output_var", "ROMI")
 model_name = os.environ.get("model_name", "UNet_A")
+multi_lead = os.environ.get("multi_lead", "true").lower() == "true"
+rule = os.environ.get("rule", 'Iamp>1.0')
+# rule = os.environ.get("rule", 'All')
+# rule = os.environ.get("rule", 'phase<3')
 
-exp_name = f"{dataflg}_{input_var_name}_{model_name}_{output_var_name}_{input_dir}"
+if not multi_lead:
+    lead = int(os.environ.get("lead", 15))
+    exp_name = f"{dataflg}_{input_var_name}_{model_name}_{output_var_name}_{input_dir}_lead{lead}"
+else:
+    exp_name = f"{dataflg}_{input_var_name}_{model_name}_{output_var_name}_{input_dir}"
 
 # Define the two periods for evaluation
 PERIODS = {
@@ -95,9 +104,13 @@ for trial_rank in TOP_TRIALS:
         print(f"[{trial_tag}] No prediction files found. Skipping.")
         continue
 
+    print(fn_list)
     # Process each period (Val and Test) using the pre-validated file list
     for period_name, dates in PERIODS.items():
-        out_file = save_dir / f"metrics_{exp_name}_{trial_tag}_{period_name}.npz"
+        if rule != 'Iamp>1.0':
+            out_file = save_dir / f"metrics_{exp_name}_{trial_tag}_{period_name}_{rule}.npz"
+        else:
+            out_file = save_dir / f"metrics_{exp_name}_{trial_tag}_{period_name}.npz"
         if os.path.exists(out_file):
             continue
 
@@ -109,29 +122,52 @@ for trial_rank in TOP_TRIALS:
         # Calculate Individual Skills
         for i, fn in enumerate(fn_list):
             print(f"  -> Processing member {i+1}/{len(fn_list)} for {period_name}...")
-            bcc, rmse = mjo.get_skill_one_all_leads(
-                mjo_ind=output_var_name,
-                fn=fn,
-                datesta=dates["start"],
-                dateend=dates["end"],
-                lead_max=lead,
-                Fnmjo=target_path
-            )
+            if multi_lead:
+                bcc, rmse = mjo.get_skill_one_all_leads(
+                    mjo_ind=output_var_name,
+                    fn=fn,
+                    datesta=dates["start"],
+                    dateend=dates["end"],
+                    lead_max=lead,
+                    Fnmjo=target_path,
+                    rule=rule
+                )
+            else:
+                bcc, rmse = mjo.get_skill_one(
+                    mjo_ind=output_var_name,
+                    fn=fn,
+                    datesta=dates["start"],
+                    dateend=dates["end"],
+                    Fnmjo=target_path,
+                    rule=rule
+                )                
             ind_bcc_list.append(bcc)
             ind_rmse_list.append(rmse)
 
         # Calculate Ensemble Mean Skill
         print(f"  -> Computing ensemble mean for {period_name}...")
-        ens_bcc, ens_rmse = mjo.get_skill_all_leads_ensemble_mean(
-            fn_list=fn_list,
-            datesta=dates["start"],
-            dateend=dates["end"],
-            leadmjo=lead,
-            Fnmjo=target_path
-        )
-
+        if multi_lead:
+            ens_bcc, ens_rmse = mjo.get_skill_all_leads_ensemble_mean(
+                fn_list=fn_list,
+                datesta=dates["start"],
+                dateend=dates["end"],
+                leadmjo=lead,
+                Fnmjo=target_path,
+                rule=rule,
+                mjo_ind=output_var_name,
+            )
+        else:
+            ens_bcc, ens_rmse = mjo.get_skill_ensemble_mean(
+                fn_list=fn_list,
+                datesta=dates["start"],
+                dateend=dates["end"],
+                leadmjo=lead,
+                Fnmjo=target_path,
+                rule=rule,
+                mjo_ind=output_var_name,
+            )            
         # Save Results per period
-        
+            
         np.savez(
             out_file,
             ind_bcc=np.array(ind_bcc_list),
@@ -145,84 +181,84 @@ for trial_rank in TOP_TRIALS:
 
 print("\nAll evaluations complete!")
 
+if multi_lead:
+    # ======================================================================
+    # 3. Plotting
+    # ======================================================================
+    print("\n" + "="*50)
+    print("=== PART 2: PLOTTING ===")
+    print("="*50)
 
-# ======================================================================
-# 3. Plotting
-# ======================================================================
-print("\n" + "="*50)
-print("=== PART 2: PLOTTING ===")
-print("="*50)
+    plt.rcParams['font.size'] = 20
+    colors = ['blue', 'red', 'green']
+    labels = ['Trial 1', 'Trial 2', 'Trial 3']
 
-plt.rcParams['font.size'] = 20
-colors = ['blue', 'red', 'green']
-labels = ['Trial 1', 'Trial 2', 'Trial 3']
-
-# Generate separate plots for 'val' and 'test'
-for period_name in PERIODS.keys():
-    print(f"Generating plots for: {period_name.upper()}...")
-    
-    fig_bcc, ax_bcc = plt.subplots(1, 1, figsize=(8.5, 6.5))
-    fig_rmse, ax_rmse = plt.subplots(1, 1, figsize=(8.5, 6.5))
-
-    for i, trial in enumerate(TOP_TRIALS):
-        data_path = save_dir / f"metrics_{exp_name}_t{trial}_{period_name}.npz"
+    # Generate separate plots for 'val' and 'test'
+    for period_name in PERIODS.keys():
+        print(f"Generating plots for: {period_name.upper()}...")
         
-        if not os.path.exists(data_path):
-            print(f"  -> Missing data for Trial {trial} {period_name}. Skipping plot line.")
-            continue
+        fig_bcc, ax_bcc = plt.subplots(1, 1, figsize=(8.5, 6.5))
+        fig_rmse, ax_rmse = plt.subplots(1, 1, figsize=(8.5, 6.5))
+
+        for i, trial in enumerate(TOP_TRIALS):
+            data_path = save_dir / f"metrics_{exp_name}_t{trial}_{period_name}.npz"
             
-        data = np.load(data_path)
-        lead_max = int(data['lead'])
-        leads = np.arange(0, lead_max + 1)
+            if not os.path.exists(data_path):
+                print(f"  -> Missing data for Trial {trial} {period_name}. Skipping plot line.")
+                continue
+                
+            data = np.load(data_path)
+            lead_max = int(data['lead'])
+            leads = np.arange(0, lead_max + 1)
+            
+            ens_bcc, ind_bcc = data['ens_bcc'], data['ind_bcc']
+            ens_rmse, ind_rmse = data['ens_rmse'], data['ind_rmse']
+            
+            bcc_min, bcc_max = np.min(ind_bcc, axis=0), np.max(ind_bcc, axis=0)
+            rmse_min, rmse_max = np.min(ind_rmse, axis=0), np.max(ind_rmse, axis=0)
+            
+            # BCC Plot Line + Shading
+            ax_bcc.fill_between(leads, bcc_min, bcc_max, color=colors[i], alpha=0.15)
+            ax_bcc.plot(leads, ens_bcc, '-o', color=colors[i], linewidth=2, label=labels[i])
+            
+            # RMSE Plot Line + Shading
+            ax_rmse.fill_between(leads, rmse_min, rmse_max, color=colors[i], alpha=0.15)
+            ax_rmse.plot(leads, ens_rmse, '-o', color=colors[i], linewidth=2, label=labels[i])
+
+        # --- Formatting BCC Plot ---
+        ax_bcc.axhline(y=0.5, color='black', linestyle='--', linewidth=2)
+        ax_bcc.set_xticks(np.arange(0, 41, 5))
+        ax_bcc.set_ylim(0.1, 1.0)
+        ax_bcc.set_xlim(0, 35)
+        ax_bcc.set_yticks(np.arange(0.1, 1.1, 0.2))
+        ax_bcc.set_xlabel('Forecast lead (days)')
+        ax_bcc.set_ylabel('BCC')
+        ax_bcc.set_title(f'BCC Skill Comparison ({period_name.upper()})')
+        ax_bcc.legend(loc='upper right', fontsize=14)
+        ax_bcc.grid(True, linestyle=':', alpha=0.6)
+
+        fig_bcc.tight_layout()
+        bcc_save_path = save_dir / f"plot_bcc_comparison_{exp_name}_{period_name}.png"
+        fig_bcc.savefig(bcc_save_path, dpi=300)
+
+        # --- Formatting RMSE Plot ---
+        ax_rmse.axhline(y=1.2, color='black', linestyle='--', linewidth=2)
+        ax_rmse.axhline(y=np.sqrt(2), color='gray', linestyle='-.', linewidth=2)
+        ax_rmse.set_xticks(np.arange(0, 41, 5))
+        ax_rmse.set_xlim(0, 35)
+        ax_rmse.set_ylim(0, 1.8)
+        ax_rmse.set_xlabel('Forecast lead (days)')
+        ax_rmse.set_ylabel('RMSE')
+        ax_rmse.set_title(f'RMSE Skill Comparison ({period_name.upper()})')
+        ax_rmse.legend(loc='upper left', fontsize=14)
+        ax_rmse.grid(True, linestyle=':', alpha=0.6)
+
+        fig_rmse.tight_layout()
+        rmse_save_path = save_dir / f"plot_rmse_comparison_{exp_name}_{period_name}.png"
+        fig_rmse.savefig(rmse_save_path, dpi=300)
         
-        ens_bcc, ind_bcc = data['ens_bcc'], data['ind_bcc']
-        ens_rmse, ind_rmse = data['ens_rmse'], data['ind_rmse']
-        
-        bcc_min, bcc_max = np.min(ind_bcc, axis=0), np.max(ind_bcc, axis=0)
-        rmse_min, rmse_max = np.min(ind_rmse, axis=0), np.max(ind_rmse, axis=0)
-        
-        # BCC Plot Line + Shading
-        ax_bcc.fill_between(leads, bcc_min, bcc_max, color=colors[i], alpha=0.15)
-        ax_bcc.plot(leads, ens_bcc, '-o', color=colors[i], linewidth=2, label=labels[i])
-        
-        # RMSE Plot Line + Shading
-        ax_rmse.fill_between(leads, rmse_min, rmse_max, color=colors[i], alpha=0.15)
-        ax_rmse.plot(leads, ens_rmse, '-o', color=colors[i], linewidth=2, label=labels[i])
+        # Close figures to free memory
+        plt.close(fig_bcc)
+        plt.close(fig_rmse)
 
-    # --- Formatting BCC Plot ---
-    ax_bcc.axhline(y=0.5, color='black', linestyle='--', linewidth=2)
-    ax_bcc.set_xticks(np.arange(0, 41, 5))
-    ax_bcc.set_ylim(0.1, 1.0)
-    ax_bcc.set_xlim(0, 35)
-    ax_bcc.set_yticks(np.arange(0.1, 1.1, 0.2))
-    ax_bcc.set_xlabel('Forecast lead (days)')
-    ax_bcc.set_ylabel('BCC')
-    ax_bcc.set_title(f'BCC Skill Comparison ({period_name.upper()})')
-    ax_bcc.legend(loc='upper right', fontsize=14)
-    ax_bcc.grid(True, linestyle=':', alpha=0.6)
-
-    fig_bcc.tight_layout()
-    bcc_save_path = save_dir / f"plot_bcc_comparison_{exp_name}_{period_name}.png"
-    fig_bcc.savefig(bcc_save_path, dpi=300)
-
-    # --- Formatting RMSE Plot ---
-    ax_rmse.axhline(y=1.2, color='black', linestyle='--', linewidth=2)
-    ax_rmse.axhline(y=np.sqrt(2), color='gray', linestyle='-.', linewidth=2)
-    ax_rmse.set_xticks(np.arange(0, 41, 5))
-    ax_rmse.set_xlim(0, 35)
-    ax_rmse.set_ylim(0, 1.8)
-    ax_rmse.set_xlabel('Forecast lead (days)')
-    ax_rmse.set_ylabel('RMSE')
-    ax_rmse.set_title(f'RMSE Skill Comparison ({period_name.upper()})')
-    ax_rmse.legend(loc='upper left', fontsize=14)
-    ax_rmse.grid(True, linestyle=':', alpha=0.6)
-
-    fig_rmse.tight_layout()
-    rmse_save_path = save_dir / f"plot_rmse_comparison_{exp_name}_{period_name}.png"
-    fig_rmse.savefig(rmse_save_path, dpi=300)
-    
-    # Close figures to free memory
-    plt.close(fig_bcc)
-    plt.close(fig_rmse)
-
-print("All plots generated and saved successfully!")
+    print("All plots generated and saved successfully!")

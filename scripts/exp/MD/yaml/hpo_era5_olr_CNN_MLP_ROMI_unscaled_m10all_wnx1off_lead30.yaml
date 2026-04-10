@@ -1,0 +1,55 @@
+data:
+  dataflg: era5
+  grid_res: 2
+  input_path:
+  - /scratch/users/linyao/ML4MJO/data/unscaled_m10all_wnx1off/olr.fltano120.1978to2025based1979to2001.nc
+  input_vars:
+  - olr
+  lat_range: 20
+  lead: 30
+  target_path: /scratch/users/linyao/ML4MJO/data/targets/ROMI_ERA5_daily_1979to2012.nc
+  target_vars:
+  - ROMI
+  test_end: '2021-12-31'
+  test_start: '2010-01-01'
+  train_end: '2009-12-31'
+  train_start: '1980-01-01'
+  transform: null
+  val_end: '2015-12-31'
+  val_start: '2010-01-01'
+dataset_type: map
+model:
+  cnn:
+    channels_list:
+    - 32
+    - 32
+    dropout: 0.0
+    input_channel_num: 1
+    input_map_size: 181
+    kernel_size:
+    - 5
+    - 5
+    norm_type: batch
+    num_filters_enc: 16
+    num_groups: 8
+    padding: same
+    stride: 1
+  mlp:
+    dropout: 0.3
+    hidden_layers:
+    - 256
+    - 128
+    - 64
+    output_size: 72
+    use_layer_norm: true
+  name: CNN_MLP
+training:
+  batch_size: 32
+  criterion: MSELoss
+  early_stopping_patience: 10
+  epochs: 30
+  learning_rate: 0.001
+  momentum: 0.9
+  multi_lead: false
+  optimizer: AdamW
+  weight_decay: 0.0001

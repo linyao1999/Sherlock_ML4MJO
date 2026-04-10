@@ -15,6 +15,8 @@ from trainers.train import train_model_hpo
 from utils.logger import setup_logger
 import optuna
 import torch 
+from optuna.storages import RDBStorage, RetryFailedTrialCallback
+from optuna.trial import TrialState
 
 # ======================================================================
 # 1. Configuration & Environment Setup
@@ -25,11 +27,12 @@ with open(CONFIG_PATH, "r") as f:
     base_config = yaml.safe_load(f)
 
 dataflg = os.environ.get("dataflg", "era5").lower()
-input_dir = os.environ.get("expflg", "rescaled_m10resi_wnx9resi")
+input_dir = os.environ.get("expflg", "unscaled_m5all_wnx2all")
 input_var_name = os.environ.get("input_var", "olr")
 output_var_name = os.environ.get("output_var", "ROMI")
 model_name = os.environ.get("model_name", "UNet_A")
 study_id = int(os.environ.get("study_id", 1))
+multi_lead = os.environ.get("multi_lead", "false").lower() == "true"
 
 # --- Data Path Logic ---
 if dataflg == "noaa":
@@ -49,16 +52,22 @@ base_config["data"].update({
 })
 
 base_config["model"]["name"] = model_name
+base_config["training"]["multi_lead"] = multi_lead
 n_modes = 2 
+if not multi_lead:
+    lead = int(os.environ.get("lead", 15))
+    base_config["data"]["lead"] = lead
+    exp_name = f"{dataflg}_{input_var_name}_{model_name}_{output_var_name}_{input_dir}_lead{lead}"
+else:
+    exp_name = f"{dataflg}_{input_var_name}_{model_name}_{output_var_name}_{input_dir}"
 
-exp_name = f"{dataflg}_{input_var_name}_{model_name}_{output_var_name}_{input_dir}"
 os.makedirs('./yaml', exist_ok=True)
 with open(f'./yaml/hpo_{exp_name}.yaml', 'w') as f:
     yaml.dump(base_config, f)
 
 optuna_dir = "./optuna"
 os.makedirs(optuna_dir, exist_ok=True)
-storage = f"sqlite:///{os.path.join(optuna_dir, f'{exp_name}_s{study_id}.db')}"
+storage_url = f"sqlite:///{os.path.join(optuna_dir, f'{exp_name}_s{study_id}.db')}"
 
 # ======================================================================
 # 2. Optuna Objective Function
@@ -173,6 +182,17 @@ def objective(trial):
 if __name__ == "__main__":
     pruner = optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=5)
 
+    # 1. Setup Robust Storage
+    # Heartbeat tracks active trials. If a node is preempted, the heartbeat stops.
+    # Optuna will notice the dead heartbeat and mark the trial as FAILED.
+    # The callback will then automatically re-queue those exact parameters for a new trial.
+    storage = RDBStorage(
+        url=storage_url,
+        heartbeat_interval=60,  # Record a heartbeat every 60s
+        grace_period=120,       # Mark as FAILED if no heartbeat is seen for 120s
+        failed_trial_callback=RetryFailedTrialCallback(max_retry=3)
+    )
+
     study = optuna.create_study(
         study_name=f"{exp_name}_s{study_id}",
         storage=storage,
@@ -181,11 +201,22 @@ if __name__ == "__main__":
         load_if_exists=True
     )
 
+    # 2. Manual Cleanup on Startup (For previously stuck trials)
+    # This catches trials that were left RUNNING before you implemented heartbeats
+    # or instances where the storage backend needs a manual push.
+    stuck_trials = [t for t in study.trials if t.state == TrialState.RUNNING]
+    for t in stuck_trials:
+        print(f"Node restart detected. Re-queueing params from interrupted Trial {t.number}...")
+        try:
+            study.enqueue_trial(t.params)
+        except ValueError:
+            # Optuna might throw an error if the exact same params are already queued
+            pass 
+
     n_total = 100
-    n_completed = len(study.trials)
+    n_completed = len([t for t in study.trials if t.state in (TrialState.COMPLETE, TrialState.PRUNED)])
     
     if n_completed < n_total:
         study.optimize(objective, n_trials=n_total - n_completed)
     
     print(f"Best Trial: {study.best_trial.number} | Value: {study.best_trial.value}")
-

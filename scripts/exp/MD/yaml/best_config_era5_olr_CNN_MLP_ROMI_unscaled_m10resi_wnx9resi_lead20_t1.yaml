@@ -1,0 +1,63 @@
+data:
+  dataflg: era5
+  grid_res: 2
+  input_path:
+  - /scratch/users/linyao/ML4MJO/data/unscaled_m10resi_wnx9resi/olr.fltano120.1978to2025based1979to2001.nc
+  input_vars:
+  - olr
+  lat_range: 20
+  lead: 20
+  target_path: /scratch/users/linyao/ML4MJO/data/targets/ROMI_ERA5_daily_1979to2012.nc
+  target_vars:
+  - ROMI
+  test_end: '2021-12-31'
+  test_start: '2010-01-01'
+  train_end: '2009-12-31'
+  train_start: '1980-01-01'
+  transform: null
+  val_end: '2015-12-31'
+  val_start: '2010-01-01'
+dataset_type: map
+exp_num: 10
+hidden_layers_str: '384_192_16'
+kernel_size_str: '7_7'
+model:
+  cnn:
+    channels_list:
+    - 32
+    - 32
+    channels_list_str: '32_32'
+    dropout: 0.0
+    input_channel_num: 1
+    input_map_size: 3780
+    kernel_size:
+    - 7
+    - 7
+    nlat: 21
+    nlon: 180
+    norm_type: group
+    num_filters_enc: 16
+    num_groups: 8
+    padding: same
+    stride: 1
+  mlp:
+    dropout: 0.30000000000000004
+    hidden_layers:
+    - 384
+    - 192
+    - 16
+    output_size: 2
+    use_layer_norm: true
+  name: CNN_MLP
+model_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/models/era5_olr_CNN_MLP_ROMI_unscaled_m10resi_wnx9resi_lead20/CNN_MLP/ROMI/lead20/t1/exp10/model_lr0.0012727098549064903_bs32_do0.30000000000000004_cnn32_32_k7_7_mlp384_192_16_AdamW.pt
+prediction_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/predictions/era5_olr_CNN_MLP_ROMI_unscaled_m10resi_wnx9resi_lead20/CNN_MLP/ROMI/lead20/t1/exp10/preds_lr0.0012727098549064903_bs32_do0.30000000000000004_cnn32_32_k7_7_mlp384_192_16_AdamW.nc
+training:
+  batch_size: 32
+  criterion: MSELoss
+  early_stopping_patience: 7
+  epochs: 20
+  learning_rate: 0.0012727098549064903
+  momentum: 0.9
+  multi_lead: false
+  optimizer: AdamW
+  weight_decay: 3.2524271602548546e-05

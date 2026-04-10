@@ -1,0 +1,63 @@
+data:
+  dataflg: era5
+  grid_res: 2
+  input_path:
+  - /scratch/users/linyao/ML4MJO/data/rescaled_m10resi_wnx9resi/olr.fltano120.1978to2025based1979to2001.nc
+  input_vars:
+  - olr
+  lat_range: 20
+  lead: 30
+  target_path: /scratch/users/linyao/ML4MJO/data/targets/ROMI_ERA5_daily_1979to2012.nc
+  target_vars:
+  - ROMI
+  test_end: '2021-12-31'
+  test_start: '2010-01-01'
+  train_end: '2009-12-31'
+  train_start: '1980-01-01'
+  transform: null
+  val_end: '2015-12-31'
+  val_start: '2010-01-01'
+dataset_type: map
+exp_num: 6
+hidden_layers_str: '128_192_112'
+kernel_size_str: '3_3'
+model:
+  cnn:
+    channels_list:
+    - 32
+    - 32
+    channels_list_str: '16'
+    dropout: 0.0
+    input_channel_num: 1
+    input_map_size: 3780
+    kernel_size:
+    - 3
+    - 3
+    nlat: 21
+    nlon: 180
+    norm_type: batch
+    num_filters_enc: 16
+    num_groups: 0
+    padding: same
+    stride: 1
+  mlp:
+    dropout: 0.2
+    hidden_layers:
+    - 128
+    - 192
+    - 112
+    output_size: 2
+    use_layer_norm: true
+  name: UNet_A
+model_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/models/era5_olr_UNet_A_ROMI_rescaled_m10resi_wnx9resi_lead30/UNet_A/ROMI/lead30/t1/exp6/model_lr0.00043421387643842615_bs64_do0.2_cnn16_k3_3_mlp128_192_112_AdamW.pt
+prediction_save_path: /scratch/users/linyao/ML4MJO/scripts/outputs/predictions/era5_olr_UNet_A_ROMI_rescaled_m10resi_wnx9resi_lead30/UNet_A/ROMI/lead30/t1/exp6/preds_lr0.00043421387643842615_bs64_do0.2_cnn16_k3_3_mlp128_192_112_AdamW.nc
+training:
+  batch_size: 64
+  criterion: MSELoss
+  early_stopping_patience: 7
+  epochs: 20
+  learning_rate: 0.00043421387643842615
+  momentum: 0.9
+  multi_lead: false
+  optimizer: AdamW
+  weight_decay: 0.0005124768075638036
